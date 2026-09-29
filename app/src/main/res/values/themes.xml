@@ -1,0 +1,11 @@
+<resources>
+
+    <style
+        name="Theme.DarkTunnel"
+        parent="Theme.Material3.DayNight.NoActionBar">
+
+        <item name="android:fontFamily">sans</item>
+
+    </style>
+
+</resources>
