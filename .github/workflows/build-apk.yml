@@ -11,51 +11,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Java 17
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Android SDK and Accept Licenses
-        run: |
-          # Atsisiunčiame ir išpakuojame Android command-line tools rankiniu būdu, kad galėtume priimti licencijas
-          mkdir -p $HOME/cmdline-tools
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
-          unzip -q cmdline-tools.zip -d $HOME/cmdline-tools
-          mkdir -p $HOME/Android/Sdk/cmdline-tools/latest
-          mv $HOME/cmdline-tools/cmdline-tools/* $HOME/Android/Sdk/cmdline-tools/latest/
-          
-          # Nustatome SDK kintamąjį
-          echo "ANDROID_SDK_ROOT=$HOME/Android/Sdk" >> $GITHUB_ENV
-          echo "$HOME/Android/Sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "$HOME/Android/Sdk/platform-tools" >> $GITHUB_PATH
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-          # Automatiškai priimame visas SDK licencijas
-          yes | $HOME/Android/Sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          
-          # Įdiegiame reikalingus paketų komponentus
-          sdkmanager --install "platform-tools" "platforms;android-33" "build-tools;33.0.0"
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
-      - name: Download Gradle
-        run: |
-          wget -q https://services.gradle.org/distributions/gradle-8.9-bin.zip
-          unzip -q gradle-8.9-bin.zip
-          echo "$PWD/gradle-8.9/bin" >> $GITHUB_PATH
+      - name: Build Debug APK with Gradle
+        run: ./gradlew assembleDebug --no-daemon
 
-      - name: Check build tools
-        run: |
-          java -version
-          gradle -version
-
-      - name: Build Debug APK
-        run: |
-          gradle assembleDebug --no-daemon
-
-      - name: Upload APK
+      - name: Upload Built APK
         uses: actions/upload-artifact@v4
         with:
           name: DarkTunnel-debug
