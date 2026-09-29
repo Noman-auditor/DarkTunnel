@@ -1,0 +1,65 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ১. কোড চেপে নিন
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ২. Java (JDK) সেট আপ
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # ৩. Android SDK সেট আপ
+      - name: Set up Android SDK
+        uses: actions/setup-android@v1
+        with:
+          sdk-version: '33'  # Target SDK version
+
+      # ৪. Gradle ক্যেশে সেট আপ (ফাস্ট বিল্ডের জন্য)
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # ৫. Android dependencies ডাউনলোড করা (প্রথম বার)
+      - name: Run Gradle dependencies
+        run: ./gradlew dependencies
+
+      # ৬. APK বিল্ড করা (Release ডিজিনেটেড)
+      - name: Build Release APK
+        run: ./gradlew assembleRelease
+
+      # ১. বিল্ড ফাইল আপলোড করা (Artifacts)
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: app/build/outputs/apk/release/*.apk
+
+      # ১০. (Optional) APK এর সাইন চেক করা
+      - name: Verify APK signature
+        run: |
+          apksigner verify --verbose app/build/outputs/apk/release/*.apk
+
+      # ১১. (Optional) APK এর নাম বা ভার্সন কোড এক্সট্র্যাক্ট করা
+      - name: Extract version code
+        run: |
+          grep -A2 -B2 "versionCode" app/build.gradle | grep -E "versionCode|versionName"
